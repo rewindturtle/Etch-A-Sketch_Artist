@@ -3,7 +3,6 @@ from tkinter import ttk, filedialog
 from PIL import Image, ImageTk
 import numpy as np
 import networkx as nx
-import Convert2Etch as c2e
 import cv2
 from scipy.spatial import distance as dst
 import matplotlib.pyplot as plt
@@ -286,6 +285,29 @@ def save_path_as_image(x, y):
     image_array = cv2.resize(image_array, (318, 228), interpolation=cv2.INTER_NEAREST)
     cv2.imwrite('images/path.png', image_array)
     path_img_lock.release()
+
+
+# Converts the calculated path into motor inputs
+def get_motor_movements(x, y):
+    motor_x = []
+    motor_y = []
+    for i in range(1, len(x)):
+        dx = x[i] - x[i - 1]
+        dy = y[i] - y[i - 1]
+        if abs(dx) > 1 or abs(dy) > 1:
+            for j in range(max(abs(dx), abs(dy))):
+                if j >= abs(dx):
+                    motor_x.append(0)
+                else:
+                    motor_x.append(np.sign(dx).astype(int))
+                if j >= abs(dy):
+                    motor_y.append(0)
+                else:
+                    motor_y.append(np.sign(dy).astype(int))
+        else:
+            motor_x.append(dx)
+            motor_y.append(dy)
+    return motor_x, motor_y
 
 
 class Root(Tk):
@@ -685,7 +707,7 @@ class Root(Tk):
 
     def draw(self):
         if self._draw_button_state:
-            m_x, m_y = c2e.get_motor_movements(self.x, self.y)
+            m_x, m_y = get_motor_movements(self.x, self.y)
             self.motor_button.configure(text="Cancel")
             print("Drawing")
             self._draw_button_state = False
